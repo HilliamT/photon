@@ -15,8 +15,8 @@
     "solhint": "solhint --config ./.solhint.json 'contracts/**/*.sol' --fix",
     "solhint:check": "solhint --config ./.solhint.json 'contracts/**/*.sol'",
     "lint": "npm run prettier && npm run solhint",
-    "lint:check": "npm run prettier:check && npm run solhint:check"
-    
+    "lint:check": "npm run prettier:check && npm run solhint:check",
+    "test": "forge test --fork-url https://rpc.flashbots.net --fork-block-number 15876374"
   },
   "devDependencies": {
     "prettier": "^2.5.1",

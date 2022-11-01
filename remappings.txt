@@ -1,3 +1,8 @@
 ds-test/=lib/ds-test/src/
 solmate/=lib/solmate/src/
 forge-std/=lib/forge-std/src/
+openzeppelin/=lib/openzeppelin-contracts/contracts/
+@uniswap/v3-periphery/=lib/v3-periphery/
+@uniswap/v3-core/=lib/v3-core/
+@morpho-dao/morpho-core-v1=lib/morpho-core-v1
+@morpho-dao/morpho-utils=lib/morpho-utils
