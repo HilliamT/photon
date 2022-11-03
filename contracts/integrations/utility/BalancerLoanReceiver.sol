@@ -1,7 +1,17 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {IBalancer} from "../../interfaces/IBalancer.sol";
+
+/// @notice Skinny interface for the Balancer Vault contract
+/// @dev See the 'balancer' field for more details.
+interface IBalancer {
+    function flashLoan(
+        address recipient,
+        address[] memory tokens,
+        uint256[] memory amounts,
+        bytes memory userData
+    ) external;
+}
 
 /// @title BalancerLoanReceiver
 /// @author Hilliam
