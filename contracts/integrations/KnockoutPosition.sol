@@ -3,15 +3,18 @@ pragma solidity ^0.8.0;
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {BalancerLoanReceiver} from "./utility/BalancerLoanReceiver.sol";
-import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import {UniswapSwapper} from "./utility/UniswapSwapper.sol";
 
-abstract contract KnockoutPosition is Ownable, BalancerLoanReceiver {
+abstract contract KnockoutPosition is
+    Ownable,
+    BalancerLoanReceiver,
+    UniswapSwapper
+{
     bool internal created;
     address internal collateralTokenAddress;
     address internal poolCollateralTokenAddress;
     address internal debtTokenAddress;
     address internal poolDebtTokenAddress;
-    ISwapRouter internal swapRouter;
 
     /*//////////////////////////////////////////////////////////////
                           POSITION MANAGEMENT
@@ -23,8 +26,7 @@ abstract contract KnockoutPosition is Ownable, BalancerLoanReceiver {
         address _debtTokenAddress,
         address _poolDebtTokenAddress,
         uint256 _amountDebt,
-        uint256 _leverage,
-        address _swapRouterAddress
+        uint256 _leverage
     ) public {
         require(!created, "Position already exists");
 
@@ -32,8 +34,6 @@ abstract contract KnockoutPosition is Ownable, BalancerLoanReceiver {
         poolCollateralTokenAddress = _poolCollateralTokenAddress;
         debtTokenAddress = _debtTokenAddress;
         poolDebtTokenAddress = _poolDebtTokenAddress;
-
-        swapRouter = ISwapRouter(_swapRouterAddress);
 
         IERC20(_debtTokenAddress).transferFrom(
             msg.sender,
@@ -96,26 +96,11 @@ abstract contract KnockoutPosition is Ownable, BalancerLoanReceiver {
             address(this)
         );
 
-        IERC20(receivedToken).approve(
-            address(swapRouter),
+        uint256 collateralAmount = swapWithExactInput(
+            receivedToken,
+            collateralTokenAddress,
             receivedTokenBalance
         );
-
-        // Use collateral to buy exposure token
-        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
-            .ExactInputSingleParams({
-                tokenIn: receivedToken,
-                tokenOut: collateralTokenAddress,
-                fee: 3000,
-                recipient: address(this),
-                deadline: block.timestamp,
-                amountIn: receivedTokenBalance,
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: 0
-            });
-
-        // The call to `exactInputSingle` executes the swap.
-        uint256 collateralAmount = swapRouter.exactInputSingle(params);
 
         _supply(collateralAmount);
         _borrow(receivedAmount);
@@ -130,24 +115,14 @@ abstract contract KnockoutPosition is Ownable, BalancerLoanReceiver {
         uint256 amountInMaximum = IERC20(collateralTokenAddress).balanceOf(
             address(this)
         );
-        IERC20(collateralTokenAddress).approve(
-            address(swapRouter),
+
+        uint256 amountIn = swapForExactOutput(
+            collateralTokenAddress,
+            receivedToken,
+            receivedAmount,
             amountInMaximum
         );
 
-        ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter
-            .ExactOutputSingleParams({
-                tokenIn: collateralTokenAddress,
-                tokenOut: receivedToken,
-                fee: 3000,
-                recipient: address(this),
-                deadline: block.timestamp,
-                amountOut: receivedAmount,
-                amountInMaximum: amountInMaximum,
-                sqrtPriceLimitX96: 0
-            });
-
-        uint256 amountIn = swapRouter.exactOutputSingle(params);
         if (amountIn < amountInMaximum) {
             // transfer
             IERC20(collateralTokenAddress).approve(address(swapRouter), 0);

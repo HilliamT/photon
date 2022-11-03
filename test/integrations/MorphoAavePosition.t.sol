@@ -93,8 +93,7 @@ contract MorphoAavePositionTest is DSTest {
             exposureTokenAddress,
             AUSDC,
             amountDebt,
-            leverage,
-            swapRouter
+            leverage
         );
 
         console.log(position.getHealthFactor());
