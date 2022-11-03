@@ -90,7 +90,7 @@ abstract contract KnockoutPosition is
     }
 
     function _createPositionLogic(address receivedToken, uint256 receivedAmount)
-        public
+        internal
     {
         uint256 receivedTokenBalance = IERC20(receivedToken).balanceOf(
             address(this)
@@ -107,9 +107,14 @@ abstract contract KnockoutPosition is
     }
 
     function _closePositionLogic(address receivedToken, uint256 receivedAmount)
-        public
+        internal
     {
+        // Use our flash loaned debt token to repay our loan
         _repay();
+
+        uint256 amountUnused = IERC20(receivedToken).balanceOf(address(this));
+
+        // Withdraw collateral
         _withdraw();
 
         uint256 amountInMaximum = IERC20(collateralTokenAddress).balanceOf(
@@ -119,18 +124,36 @@ abstract contract KnockoutPosition is
         uint256 amountIn = swapForExactOutput(
             collateralTokenAddress,
             receivedToken,
-            receivedAmount,
+            receivedAmount - amountUnused,
             amountInMaximum
         );
 
         if (amountIn < amountInMaximum) {
             // transfer
-            IERC20(collateralTokenAddress).approve(address(swapRouter), 0);
             IERC20(collateralTokenAddress).transfer(
                 owner(),
                 amountInMaximum - amountIn
             );
         }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                  VIEW
+    //////////////////////////////////////////////////////////////*/
+
+    function getCollateralAddress() public returns (address) {
+        return collateralTokenAddress;
+    }
+
+    function getDebtAddress() public returns (address) {
+        return debtTokenAddress;
+    }
+
+    function getAmountEarntFromExercising()
+        public
+        returns (uint256 amountEarntFromExercising)
+    {
+        return amountEarntFromExercising;
     }
 
     /*//////////////////////////////////////////////////////////////
